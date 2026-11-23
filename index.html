@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>磨豆刻度換算（手沖）</title>
+<style>
+  /* 量測紙：冷白紙張 + 淡藍方格 + 深藍墨色 + 朱紅指針 */
+  :root {
+    --paper: #f2f5f4; --grid: rgba(38, 92, 170, .075); --grid-strong: rgba(38, 92, 170, .13);
+    --card: #ffffff; --ink: #14223d; --ink-2: #3a4a66; --muted: #6a778c; --line: #d8dee7; --line-2: #c3ccd9;
+    --accent: #e5442b; --accent-soft: #ffe6df;
+    --good: #12875b; --good-soft: #dcf3e8; --warn: #a86f00; --warn-soft: #fff1cf; --bad: #c42e2e;
+    --light-roast: #f4c430; --medium-roast: #f08a3c; --dark-roast: #8a4b2a;
+    --num: "Bahnschrift", "DIN Alternate", "DIN Condensed", "Avenir Next Condensed", "Roboto Condensed", "Arial Narrow", sans-serif;
+    --serif: "Noto Serif TC", "Source Han Serif TC", "Songti TC", "PMingLiU", "MingLiU", serif;
+    --sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "Heiti TC", sans-serif;
+    --radius: 6px;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; color: var(--ink); font: 16px/1.65 var(--sans);
+    background-color: var(--paper);
+    background-image:
+      linear-gradient(var(--grid-strong) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-strong) 1px, transparent 1px),
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px;
+    background-position: -1px -1px;
+  }
+  main { max-width: 620px; margin: 0 auto; padding: 40px 18px 72px; }
+
+  /* ── 刊頭 ── */
+  .mast { margin-bottom: 26px; }
+  .kicker { font: 600 12px/1 var(--num); letter-spacing: .28em; color: var(--accent); text-transform: uppercase; display: flex; align-items: center; gap: 10px; }
+  .kicker::before { content: ""; width: 26px; height: 2px; background: var(--accent); }
+  h1 { font: 700 34px/1.2 var(--serif); margin: 12px 0 8px; letter-spacing: .04em; }
+  h1 small { font: 500 15px var(--sans); color: var(--muted); letter-spacing: .1em; margin-left: 8px; }
+  .sub { color: var(--ink-2); font-size: 15px; margin: 0; max-width: 34em; }
+  .ruler {
+    height: 18px; margin-top: 18px; border-bottom: 1.5px solid var(--ink);
+    background:
+      linear-gradient(90deg, var(--ink) 1.5px, transparent 1.5px) 0 100% / 60px 18px repeat-x,
+      linear-gradient(90deg, var(--ink) 1px, transparent 1px) 0 100% / 30px 11px repeat-x,
+      linear-gradient(90deg, var(--line-2) 1px, transparent 1px) 0 100% / 6px 6px repeat-x;
+  }
+
+  /* ── 卡片 ── */
+  .card {
+    position: relative; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 20px 20px 18px; margin-bottom: 14px;
+    box-shadow: 0 1px 0 rgba(20, 34, 61, .04), 0 12px 28px -18px rgba(20, 34, 61, .28);
+    animation: rise .5s cubic-bezier(.2, .8, .2, 1) both;
+  }
+  .card:nth-of-type(1) { animation-delay: .05s; } .card:nth-of-type(2) { animation-delay: .12s; }
+  .card:nth-of-type(3) { animation-delay: .19s; } .card:nth-of-type(4) { animation-delay: .24s; }
+  .card:nth-of-type(5) { animation-delay: .29s; } .card:nth-of-type(6) { animation-delay: .34s; }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } }
+  .tag { font: 600 11px/1 var(--num); letter-spacing: .22em; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+  .tag b { color: var(--accent); font-weight: 700; margin-right: 6px; }
+
+  label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-2); margin: 14px 0 6px; }
+  select, input {
+    width: 100%; padding: 11px 13px; font: 16px var(--sans); color: var(--ink);
+    border-radius: var(--radius); border: 1.5px solid var(--line-2); background: #fbfcfd;
+    transition: border-color .15s, box-shadow .15s, background .15s;
+  }
+  select {
+    appearance: none; -webkit-appearance: none; padding-right: 38px; cursor: pointer;
+    background: #fbfcfd url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%2314223d' stroke-width='1.8'/%3E%3C/svg%3E") no-repeat right 14px center;
+  }
+  input:hover, select:hover { border-color: var(--ink-2); }
+  input:focus, select:focus { outline: none; border-color: var(--ink); background-color: #fff; box-shadow: 0 0 0 4px var(--accent-soft); }
+  #setting { font: 600 26px/1.2 var(--num); letter-spacing: .04em; padding: 10px 14px; }
+  #setting::placeholder { color: #b5bfcc; font-weight: 400; }
+  .row { display: flex; gap: 12px; } .row > * { flex: 1; min-width: 0; }
+  .hint { font-size: 13px; color: var(--muted); margin-top: 6px; }
+
+  /* 「換算成」分隔：一條帶箭頭的尺線 */
+  .arrow { display: flex; align-items: center; gap: 10px; margin: 18px 0 2px; color: var(--accent); font: 600 12px var(--num); letter-spacing: .2em; }
+  .arrow::before, .arrow::after { content: ""; flex: 1; height: 1px; background: repeating-linear-gradient(90deg, var(--line-2) 0 6px, transparent 6px 10px); }
+
+  /* ── 結果 ── */
+  .card.out { border-top: 3px solid var(--accent); padding-top: 18px; }
+  .result { text-align: center; padding: 4px 0 0; min-height: 96px; }
+  .result .grinder { font: 600 12px var(--num); letter-spacing: .18em; color: var(--muted); text-transform: uppercase; }
+  .result .big {
+    font: 700 76px/1 var(--num); color: var(--ink); letter-spacing: .02em; margin: 8px 0 6px;
+    font-variant-numeric: tabular-nums; animation: pop .28s cubic-bezier(.2, .9, .3, 1.3);
+  }
+  @keyframes pop { from { transform: scale(.94); opacity: .4; } }
+  .result .unit { font-size: 14px; color: var(--muted); }
+  .result .unit .num { font-family: var(--num); color: var(--ink-2); font-size: 15px; }
+  .result .empty { color: var(--muted); padding-top: 30px; font-size: 15px; }
+  .compare { margin-top: 12px; font-size: 14px; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+  .chip { display: inline-block; padding: 3px 10px; border-radius: 999px; background: #eef1f6; color: var(--ink-2); }
+  .chip.in { background: var(--good-soft); color: var(--good); font-weight: 600; }
+  .chip.warn { background: var(--warn-soft); color: var(--warn); }
+  .err { color: var(--bad); padding-top: 28px; }
+  .warn { color: var(--warn); }
+  .applied { font-size: 12.5px; color: var(--muted); margin-top: 10px; }
+  .applied::before { content: "◆ "; color: var(--accent); }
+
+  /* 粒徑尺：細 ← → 粗 */
+  .scale { position: relative; height: 68px; margin: 22px 2px 0; transition: opacity .3s; }
+  .scale.idle { opacity: .35; }
+  .scale .track {
+    position: absolute; left: 0; right: 0; top: 30px; height: 10px; border-radius: 2px;
+    background: linear-gradient(90deg, #eaf0f7, #d5deea);
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+  .scale .ticks {
+    position: absolute; left: 0; right: 0; top: 42px; height: 8px;
+    background: linear-gradient(90deg, var(--line-2) 1px, transparent 1px) 0 0 / 12.5% 100% repeat-x;
+    border-left: 1px solid var(--line-2); border-right: 1px solid var(--line-2);
+  }
+  .band { position: absolute; top: 30px; height: 10px; min-width: 4px; transition: left .4s, width .4s; }
+  .band.v60 { background: repeating-linear-gradient(135deg, rgba(20, 34, 61, .18) 0 3px, transparent 3px 6px); }
+  .band.light { background: var(--light-roast); }
+  .band.medium { background: var(--medium-roast); box-shadow: 0 0 0 1.5px #fff; }
+  .band.dark { background: var(--dark-roast); box-shadow: 0 0 0 1.5px #fff; }
+  .legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 16px; font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { display: inline-block; width: 14px; height: 8px; border-radius: 1px; }
+  .legend .k-mark { width: 2px; height: 12px; background: var(--accent); }
+  .legend .k-v60 { background: repeating-linear-gradient(135deg, rgba(20, 34, 61, .3) 0 2px, transparent 2px 4px); box-shadow: inset 0 0 0 1px var(--line-2); }
+  .legend .k-light { background: var(--light-roast); }
+  .legend .k-medium { background: var(--medium-roast); }
+  .legend .k-dark { background: var(--dark-roast); }
+  .legend span[hidden] { display: none; }
+  .band[hidden] { display: none; }
+  .mark { position: absolute; top: 18px; width: 0; height: 34px; transition: left .45s cubic-bezier(.2, .8, .2, 1); }
+  .mark::before { content: ""; position: absolute; left: -1px; top: 0; width: 2px; height: 34px; background: var(--accent); }
+  .mark::after { content: ""; position: absolute; left: -6px; top: -8px; border: 6px solid transparent; border-top: 8px solid var(--accent); }
+  .scale .ends { position: absolute; left: 0; right: 0; top: 54px; display: flex; justify-content: space-between; font: 500 11px var(--num); color: var(--muted); letter-spacing: .08em; }
+
+  /* ── 摺疊區 ── */
+  details summary {
+    cursor: pointer; list-style: none; display: flex; align-items: center; gap: 10px;
+    font-weight: 700; font-size: 15px; color: var(--ink);
+  }
+  details summary::-webkit-details-marker { display: none; }
+  details summary::after {
+    content: ""; margin-left: auto; width: 22px; height: 22px; flex: none; border-radius: 50%;
+    border: 1.5px solid var(--line-2);
+    background: linear-gradient(var(--ink), var(--ink)) center / 10px 1.5px no-repeat, linear-gradient(var(--ink), var(--ink)) center / 1.5px 10px no-repeat;
+    transition: transform .25s, background-color .2s;
+  }
+  details[open] summary::after { transform: rotate(45deg); background-color: var(--accent-soft); border-color: var(--accent); }
+  details summary:hover::after { border-color: var(--ink); }
+  details .num-tag { font: 700 12px var(--num); color: var(--accent); letter-spacing: .1em; }
+  details[open] > :not(summary) { animation: rise .3s ease both; }
+
+  table { width: 100%; border-collapse: collapse; font: 15px var(--num); font-variant-numeric: tabular-nums; margin-top: 4px; }
+  th, td { padding: 7px 6px; border-bottom: 1px solid #edf0f4; text-align: center; }
+  th { color: var(--muted); font: 600 12px var(--sans); border-bottom: 1.5px solid var(--ink); }
+  tbody tr:nth-child(even) td { background: #f7f9fb; }
+  td:nth-child(2) { color: var(--ink); font-weight: 700; }
+  td:nth-child(3) { color: var(--muted); }
+
+  button {
+    padding: 10px 16px; font: 600 14px var(--sans); border-radius: var(--radius); cursor: pointer;
+    border: 1.5px solid var(--line-2); background: #fff; color: var(--ink); transition: transform .1s, background .15s, border-color .15s;
+  }
+  button:hover { border-color: var(--ink); }
+  button:active { transform: translateY(1px); }
+  button.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+  button.primary:hover { background: #22355c; }
+  button:focus-visible { outline: none; box-shadow: 0 0 0 4px var(--accent-soft); }
+  .btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .custom-list { font-size: 14px; margin-top: 12px; }
+  .custom-list div { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px dashed var(--line); }
+  .custom-list button { padding: 4px 12px; font-size: 12.5px; color: var(--bad); }
+  a { color: var(--accent); text-underline-offset: 2px; }
+  .foot { font-size: 12.5px; color: var(--muted); margin-top: 28px; padding-top: 16px; border-top: 1.5px solid var(--ink); }
+
+  @media (max-width: 480px) {
+    main { padding-top: 28px; }
+    h1 { font-size: 28px; }
+    .result .big { font-size: 64px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header class="mast">
+    <div class="kicker">Grind Converter</div>
+    <h1>磨豆刻度換算<small>手沖</small></h1>
+    <p class="sub">把食譜上的磨豆機刻度換算成另一台磨豆機的刻度。直接打開這個檔案就能用，不需要網路或伺服器。</p>
+    <div class="ruler" aria-hidden="true"></div>
+  </header>
+  <section class="card">
+    <details id="backupBox">
+      <summary><span class="num-tag">00</span>匯入設定／備份</summary>
+      <p class="hint">第一次使用時，先匯入自己的設定檔（常用刻度、實測對照點、自訂磨豆機）。沒有匯入的話，換算只會照各家公開資料計算，跟實際口感可能有落差。</p>
+      <p class="hint">設定只存在這台裝置的瀏覽器裡。在頁面上改過之後，記得匯出一份保存，換裝置或清掉瀏覽器資料後再匯入。</p>
+      <div class="btns">
+        <button class="primary" id="cImport">匯入</button>
+        <button id="cExport">匯出</button>
+        <input type="file" id="cFile" accept=".json,application/json" hidden />
+      </div>
+      <div class="hint" id="bMsg"></div>
+    </details>
+  </section>
+
+  <section class="card">
+    <div class="tag"><b>01</b>Recipe</div>
+    <label for="from">食譜用的磨豆機</label>
+    <select id="from"></select>
+    <label for="setting">食譜的刻度</label>
+    <input id="setting" inputmode="decimal" autocomplete="off" />
+    <div class="hint" id="notationHint"></div>
+
+    <div class="arrow" aria-hidden="true">▼</div>
+    <label for="to">換算成</label>
+    <select id="to"></select>
+  </section>
+
+  <section class="card out">
+    <div class="tag"><b>02</b>Result</div>
+    <div class="result" id="result" aria-live="polite"></div>
+    <div class="scale idle" id="scale" aria-hidden="true">
+      <div class="track"></div>
+      <div class="ticks"></div>
+      <div class="band v60" id="bV60"></div>
+      <div class="band light" id="bLight" hidden></div>
+      <div class="band medium" id="bMed" hidden></div>
+      <div class="band dark" id="bDark" hidden></div>
+      <div class="mark" id="mark" style="left:50%"></div>
+      <div class="ends"><span>細 200µm</span><span>1000µm 粗</span></div>
+    </div>
+    <div class="legend" aria-hidden="true">
+      <span><i class="k-mark"></i>換算結果</span><span><i class="k-v60"></i>V60 建議範圍</span>
+      <span id="kLight" hidden><i class="k-light"></i>常用淺焙</span><span id="kMed" hidden><i class="k-medium"></i>常用中焙</span><span id="kDark" hidden><i class="k-dark"></i>常用深焙</span>
+    </div>
+  </section>
+
+  <section class="card">
+    <details id="tableBox">
+      <summary><span class="num-tag">03</span>對照表（食譜那台的 V60 範圍 → 換算後）</summary>
+      <div id="table" style="margin-top:12px"></div>
+    </details>
+  </section>
+
+  <section class="card">
+    <details id="usualBox">
+      <summary><span class="num-tag">04</span>常用刻度（選填）</summary>
+      <p class="hint">填入平常手沖用的刻度，換算到這台機器時會顯示「比平常粗／細幾格」。用的是目前「換算成」選的機器，存在這台裝置的瀏覽器裡。</p>
+      <div class="row">
+        <div><label for="uLightLo">淺焙（細端）</label><input id="uLightLo" inputmode="decimal" /></div>
+        <div><label for="uLightHi">淺焙（粗端，可留空）</label><input id="uLightHi" inputmode="decimal" /></div>
+      </div>
+      <div class="row">
+        <div><label for="uMedLo">中焙（細端）</label><input id="uMedLo" inputmode="decimal" /></div>
+        <div><label for="uMedHi">中焙（粗端，可留空）</label><input id="uMedHi" inputmode="decimal" /></div>
+      </div>
+      <div class="row">
+        <div><label for="uDarkLo">深焙（細端）</label><input id="uDarkLo" inputmode="decimal" /></div>
+        <div><label for="uDarkHi">深焙（粗端，可留空）</label><input id="uDarkHi" inputmode="decimal" /></div>
+      </div>
+      <div class="btns"><button class="primary" id="uSave">儲存</button><button id="uClear">清除</button></div>
+      <div class="hint" id="uInfo"></div>
+      <div class="hint err" id="uErr"></div>
+    </details>
+  </section>
+
+  <section class="card">
+    <details id="pairBox">
+      <summary><span class="num-tag">05</span>實測對照點（修正某台機器的換算）</summary>
+      <p class="hint">各家資料對同一台機器的估計常常差很多。實際比對過兩台機器（例如喝起來「C40 22 格 ≈ K-Ultra 6.5」），把結果填進來，那台機器的換算就會以實測為準。<br>同一台填 1 組：整台等比例修正。填 2 組（例如淺焙、中焙各一組）：起點和比例都照實測，最準。</p>
+      <div class="row">
+        <div><label for="pSetting" id="pFromLabel">食譜那台</label><input id="pSetting" inputmode="decimal" /></div>
+        <div><label for="pMine" id="pToLabel">≈ 換算成</label><input id="pMine" inputmode="decimal" /></div>
+      </div>
+      <label for="pNote">備註（選填）</label>
+      <input id="pNote" placeholder="例如：咖啡廳比對、兩台實際使用" />
+      <div class="btns"><button class="primary" id="pAdd">用目前選的兩台機器新增對照點</button></div>
+      <div class="hint err" id="pErr"></div>
+      <div class="custom-list" id="pList"></div>
+    </details>
+  </section>
+
+  <section class="card">
+    <details>
+      <summary><span class="num-tag">06</span>新增清單裡沒有的磨豆機</summary>
+      <p class="hint">只需要那台機器 V60／手沖建議範圍的「最細」和「最粗」刻度（官方說明書、評測或常用值都可以）。存在這台裝置的瀏覽器裡，記得到「00 匯入設定／備份」匯出一份。</p>
+      <label for="cName">名稱</label>
+      <input id="cName" placeholder="例如：飛馬 600N" />
+      <label for="cType">刻度寫法</label>
+      <select id="cType">
+        <option value="clicks">直接數格數（例如 24）</option>
+        <option value="decimal">刻度盤數字，可有小數（例如 5.5）</option>
+        <option value="rnt">圈.數字.格（例如 1.2.5）</option>
+        <option value="rc">圈.格數（例如 1.22）</option>
+        <option value="numberStep">數字.小格（例如 4.2）</option>
+      </select>
+      <div class="row" id="cExtra"></div>
+      <div class="row">
+        <div><label for="cLo">V60 最細</label><input id="cLo" inputmode="decimal" /></div>
+        <div><label for="cHi">V60 最粗</label><input id="cHi" inputmode="decimal" /></div>
+      </div>
+      <div class="btns">
+        <button class="primary" id="cAdd">新增</button>
+      </div>
+      <div class="hint err" id="cErr"></div>
+      <div class="custom-list" id="cList"></div>
+    </details>
+  </section>
+
+
+  <p class="foot">
+    換算方式：每台機器 V60 建議範圍的細端 ≈ 400µm、粗端 ≈ 700µm，用粒徑當共同尺度互換。
+    內建資料整理自 <a href="https://honestcoffeeguide.com/" target="_blank" rel="noopener">Honest Coffee Guide</a>
+    與 1Zpresso 官方刻度表。磨豆機個體、刀盤磨合都有差異，換算結果是起點，請依口感微調。
+  </p>
+</main>
+
+<script src="grinders.js"></script>
+<script src="grind.js"></script>
+<!-- 選填：個人預設（不進 git，見 local-settings.example.js）。沒有這個檔案也能正常使用 -->
+<script src="local-settings.js" onerror="this.remove()"></script>
+<script>
+(function () {
+  const G = window.Grind;
+  const STORE = 'grind.custom.v1';
+  const STATE = 'grind.state.v1';
+  const $ = (id) => document.getElementById(id);
+
+  const PAIRS = 'grind.pairs.v1';
+  let custom = load(STORE, {});
+  // 對照點：預設的（my-settings.js）+ 自己在頁面上加的；同一台機器以最後一筆為準
+  const USUAL = 'grind.usual.v1';
+  // 瀏覽器裡沒存過的話，用 local-settings.js 的個人預設
+  const LOCAL = G.LOCAL_SETTINGS || {};
+  let pairs = loadSaved(PAIRS, LOCAL.pairs || []);
+  // 常用刻度：{ grinder, light: [細, 粗], medium: [細, 粗], dark: [細, 粗] }
+  let usual = loadSaved(USUAL, LOCAL.usual || null);
+  let extra = {};
+  function rebuild() {
+    try { extra = G.applyPairs(pairs, custom); } catch (e) { extra = Object.assign({}, custom); }
+  }
+  rebuild();
+  const all = () => Object.assign({}, G.GRINDERS, extra);
+
+  function load(key, fallback) {
+    try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch { return fallback; }
+  }
+  // 跟 load 不同：存過 null 也算存過（使用者清除過），只有從沒存過才用預設
+  function loadSaved(key, fallback) {
+    try { const raw = localStorage.getItem(key); return raw === null ? fallback : JSON.parse(raw); } catch { return fallback; }
+  }
+  function save(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch {} }
+
+  const NOTATION_HINT = {
+    clicks: '直接輸入格數',
+    decimal: '輸入刻度盤上的數字，可有小數',
+    rnt: (n) => `圈.數字.格，第 0 圈可省略（例如 ${n.perRotation / n.perNumber > 8 ? '8.5 = 0.8.5' : '1.2.5'}）`,
+    rc: (n) => `圈.格數（每圈 ${n.perRotation} 格），例如 1.22`,
+    numberStep: (n) => `數字.小格（每個數字 ${n.perNumber} 小格），例如 4.2`,
+  };
+
+  function fillSelect(sel, selected) {
+    const groups = {};
+    for (const [id, g] of Object.entries(all())) {
+      const brand = custom[id] ? '自訂' : g.name.split(/\s/)[0];
+      (groups[brand] = groups[brand] || []).push([id, g]);
+    }
+    sel.innerHTML = '';
+    for (const [brand, items] of Object.entries(groups)) {
+      const og = document.createElement('optgroup');
+      og.label = brand;
+      for (const [id, g] of items) {
+        const o = new Option(g.name + (g.confidence === 'medium' ? '（寫法待確認）' : ''), id);
+        og.appendChild(o);
+      }
+      sel.appendChild(og);
+    }
+    if (selected && all()[selected]) sel.value = selected;
+  }
+
+  function hintFor(g) {
+    const h = NOTATION_HINT[g.notation.type];
+    const text = typeof h === 'function' ? h(g.notation) : h;
+    return `${text}。這台 V60 建議範圍：${g.v60[0]} ～ ${g.v60[1]}` +
+      (g.source ? `（<a href="${g.source}" target="_blank" rel="noopener">來源</a>）` : '');
+  }
+
+  // 跟常用刻度比較
+  function compareWithUsual(toId, clicks) {
+    if (!usual || toId !== usual.grinder) return '';
+    const g = all()[toId];
+    const c = (s) => G.toClicks(g.notation, s);
+    const pieces = [];
+    for (const [roast, label] of [['light', '淺焙'], ['medium', '中焙'], ['dark', '深焙']]) {
+      const r = usual[roast];
+      if (!r) continue;
+      const lo = c(r[0]), hi = c(r[1]);
+      const rounded = Math.round(clicks);
+      const rangeText = r[0] === r[1] ? r[0] : `${r[0]}～${r[1]}`;
+      if (rounded >= lo && rounded <= hi) pieces.push(`<span class="chip in">落在常用的${label}範圍（${rangeText}）</span>`);
+      else {
+        const d = rounded < lo ? rounded - lo : rounded - hi;
+        pieces.push(`<span class="chip">比常用的${label}（${rangeText}）${d < 0 ? '細' : '粗'} ${Math.abs(d)} 格</span>`);
+      }
+    }
+    return pieces.join('');
+  }
+
+  function render() {
+    const fromId = $('from').value, toId = $('to').value, s = $('setting').value.trim();
+    const A = all(), from = A[fromId], to = A[toId];
+    $('notationHint').innerHTML = hintFor(from);
+    $('pFromLabel').textContent = from.name;
+    $('pToLabel').textContent = '≈ ' + to.name;
+    save(STATE, { from: fromId, to: toId, setting: s });
+
+    const res = $('result');
+    if (!s) {
+      res.innerHTML = `<div class="empty">輸入食譜的刻度，這裡會顯示換算結果</div>`;
+      renderScale(toId, null);
+    } else {
+      try {
+        const r = G.convert(fromId, s, toId, extra);
+        const total = to.notation.type === 'rnt' || to.notation.type === 'rc' || to.notation.type === 'numberStep'
+          ? `（共 ${Math.round(r.clicks)} 格）` : '';
+        res.innerHTML =
+          `<div class="grinder">${to.name}</div>` +
+          `<div class="big">${r.display}</div>` +
+          `<div class="unit">${total} 約 <span class="num">${Math.round(r.microns)}µm</span></div>` +
+          `<div class="compare">${(r.outOfRange ? '<span class="chip warn">超出這台機器的可磨範圍，僅供參考</span>' : '') + compareWithUsual(toId, r.clicks)}</div>` +
+          (from.pairs ? `<div class="applied">已套用實測對照點：${from.pairs.map((p) => `${p.setting} ≈ ${all()[p.to].name} ${p.mine}`).join('、')}</div>` : '');
+        renderScale(toId, r.microns);
+      } catch (e) {
+        res.innerHTML = `<div class="err">${e.message}</div>`;
+        renderScale(toId, null);
+      }
+    }
+    renderTable(fromId, toId);
+  }
+
+  // 粒徑尺：結果指針 + V60 範圍 + 常用淺焙／中焙／深焙
+  const SCALE = [200, 1000];
+  const pct = (um) => Math.min(100, Math.max(0, (um - SCALE[0]) / (SCALE[1] - SCALE[0]) * 100));
+  function placeBand(el, a, b) {
+    el.hidden = false;
+    el.style.left = pct(Math.min(a, b)) + '%';
+    el.style.width = (pct(Math.max(a, b)) - pct(Math.min(a, b))) + '%';
+  }
+  function renderScale(toId, um) {
+    placeBand($('bV60'), G.V60_MICRONS[0], G.V60_MICRONS[1]);
+    for (const [roast, id] of [['light', 'bLight'], ['medium', 'bMed'], ['dark', 'bDark']]) {
+      const r = usual && usual.grinder === toId && usual[roast];
+      if (!r) { $(id).hidden = true; continue; }
+      try { placeBand($(id), G.toMicrons(toId, r[0], extra), G.toMicrons(toId, r[1], extra)); } catch { $(id).hidden = true; }
+    }
+    $('scale').classList.toggle('idle', um == null);
+    for (const [band, key] of [['bLight', 'kLight'], ['bMed', 'kMed'], ['bDark', 'kDark']]) $(key).hidden = $(band).hidden;
+    if (um != null) $('mark').style.left = pct(um) + '%';
+  }
+
+  function renderTable(fromId, toId) {
+    const A = all(), from = A[fromId], to = A[toId];
+    const lo = G.toClicks(from.notation, from.v60[0]);
+    const hi = G.toClicks(from.notation, from.v60[1]);
+    const step = from.notation.type === 'decimal' ? Math.max(0.1, Math.round((hi - lo) / 12 * 10) / 10) : Math.max(1, Math.round((hi - lo) / 12));
+    let rows = '';
+    for (let c = lo; c <= hi + 1e-9; c += step) {
+      const fs = G.fromClicks(from.notation, c);
+      const r = G.convert(fromId, fs, toId, extra);
+      rows += `<tr><td>${fs}</td><td>${r.display}</td><td>${Math.round(r.microns)}</td></tr>`;
+    }
+    $('table').innerHTML = `<table><thead><tr><th>${from.name}</th><th>${to.name}</th><th>µm</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+
+  // ── 自訂磨豆機 ──
+  function renderExtra() {
+    const t = $('cType').value;
+    const box = $('cExtra');
+    if (t === 'rnt') box.innerHTML = `<div><label for="cPR">每圈幾格</label><input id="cPR" inputmode="numeric" value="100"></div><div><label for="cPN">每個數字幾格</label><input id="cPN" inputmode="numeric" value="10"></div>`;
+    else if (t === 'rc') box.innerHTML = `<div><label for="cPR">每圈幾格</label><input id="cPR" inputmode="numeric" value="60"></div>`;
+    else if (t === 'numberStep') box.innerHTML = `<div><label for="cPN">每個數字幾小格</label><input id="cPN" inputmode="numeric" value="3"></div>`;
+    else box.innerHTML = '';
+  }
+
+  function renderCustomList() {
+    $('cList').innerHTML = Object.entries(custom).map(([id, g]) =>
+      `<div><span>${g.name}（V60 ${g.v60[0]}～${g.v60[1]}）</span><button data-del="${id}">刪除</button></div>`).join('');
+  }
+
+  function refreshSelects() {
+    const st = { from: $('from').value, to: $('to').value };
+    fillSelect($('from'), st.from);
+    fillSelect($('to'), st.to);
+  }
+
+  $('cType').addEventListener('change', renderExtra);
+  $('cAdd').addEventListener('click', () => {
+    $('cErr').textContent = '';
+    const type = $('cType').value;
+    const notation = { type };
+    if ($('cPR')) notation.perRotation = Number($('cPR').value);
+    if ($('cPN')) notation.perNumber = Number($('cPN').value);
+    const g = { name: $('cName').value.trim(), notation, v60: [$('cLo').value.trim(), $('cHi').value.trim()] };
+    try {
+      G.validateGrinder(g);
+      const id = 'custom-' + Date.now();
+      custom[id] = g;
+      save(STORE, custom);
+      rebuild();
+      refreshSelects();
+      $('from').value = id;
+      renderCustomList();
+      render();
+      for (const f of ['cName', 'cLo', 'cHi']) $(f).value = '';
+    } catch (e) { $('cErr').textContent = e.message; }
+  });
+  $('cList').addEventListener('click', (e) => {
+    const id = e.target.dataset.del;
+    if (!id || !confirm(`刪除「${custom[id].name}」？`)) return;
+    delete custom[id];
+    save(STORE, custom);
+    rebuild();
+    refreshSelects();
+    renderCustomList();
+    render();
+  });
+  $('cExport').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify({ grinders: custom, pairs, usual }, null, 2)], { type: 'application/json' });
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'grind-backup.json' });
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+  $('cImport').addEventListener('click', () => $('cFile').click());
+  $('cFile').addEventListener('change', async (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    try {
+      const raw = JSON.parse(await f.text());
+      const data = raw.grinders || raw; // 也接受舊格式（只有磨豆機）
+      for (const g of Object.values(data)) G.validateGrinder(g);
+      Object.assign(custom, data);
+      save(STORE, custom);
+      if (Array.isArray(raw.pairs)) { pairs = raw.pairs; save(PAIRS, pairs); }
+      if (raw.usual && raw.usual.grinder) { usual = raw.usual; save(USUAL, usual); }
+      rebuild();
+      renderPairs();
+      renderUsual();
+      refreshSelects();
+      renderCustomList();
+      render();
+      $('bMsg').textContent = '已匯入。';
+    } catch (err) { $('bMsg').innerHTML = `<span class="err">匯入失敗：${err.message}</span>`; }
+    e.target.value = '';
+  });
+
+  // ── 對照點 ──
+  function renderPairs() {
+    const A = all();
+    $('pList').innerHTML = pairs.map((p, i) =>
+      `<div><span>${(A[p.from] || {}).name || p.from} ${p.setting} ≈ ${(A[p.to] || {}).name || p.to} ${p.mine}${p.note ? '（' + p.note + '）' : ''}</span><button data-pdel="${i}">刪除</button></div>`).join('');
+  }
+  $('pAdd').addEventListener('click', () => {
+    $('pErr').textContent = '';
+    const p = { from: $('from').value, setting: $('pSetting').value.trim(), to: $('to').value, mine: $('pMine').value.trim(), note: $('pNote').value.trim() };
+    try {
+      if (p.from === p.to) throw new Error('兩台要選不同的機器');
+      // 同一台最多保留 2 組（兩點定義起點和比例）；同刻度的舊資料會被取代
+      let same = pairs.filter((x) => x.from === p.from && x.to === p.to && x.setting !== p.setting);
+      if (same.length >= 2) same = same.slice(-1);
+      const next = pairs.filter((x) => x.from !== p.from).concat(same, p);
+      G.applyPairs(next, custom); // 驗證
+      pairs = next;
+      save(PAIRS, pairs);
+      rebuild(); renderPairs(); render();
+      for (const f of ['pSetting', 'pMine', 'pNote']) $(f).value = '';
+    } catch (e) { $('pErr').textContent = e.message; }
+  });
+  $('pList').addEventListener('click', (e) => {
+    const i = e.target.dataset.pdel;
+    if (i === undefined || !confirm('刪除這個對照點？')) return;
+    pairs.splice(Number(i), 1);
+    save(PAIRS, pairs);
+    rebuild(); renderPairs(); render();
+  });
+
+  // ── 常用刻度 ──
+  function renderUsual() {
+    const toId = $('to').value;
+    const has = usual && usual.grinder === toId;
+    const v = (roast, i) => (has && usual[roast] ? usual[roast][i] : '');
+    $('uLightLo').value = v('light', 0); $('uLightHi').value = has && usual.light && usual.light[1] !== usual.light[0] ? v('light', 1) : '';
+    $('uMedLo').value = v('medium', 0); $('uMedHi').value = has && usual.medium && usual.medium[1] !== usual.medium[0] ? v('medium', 1) : '';
+    $('uDarkLo').value = v('dark', 0); $('uDarkHi').value = has && usual.dark && usual.dark[1] !== usual.dark[0] ? v('dark', 1) : '';
+    const A = all();
+    $('uInfo').textContent = usual
+      ? `目前儲存的是 ${(A[usual.grinder] || {}).name || usual.grinder} 的常用刻度` + (has ? '' : '（換算成那台時才會比較）')
+      : '';
+  }
+  $('uSave').addEventListener('click', () => {
+    $('uErr').textContent = '';
+    const toId = $('to').value, g = all()[toId];
+    const range = (lo, hi) => {
+      lo = $(lo).value.trim(); hi = $(hi).value.trim() || lo;
+      if (!lo) return undefined;
+      if (G.toClicks(g.notation, hi) < G.toClicks(g.notation, lo)) [lo, hi] = [hi, lo];
+      return [lo, hi];
+    };
+    try {
+      const next = { grinder: toId, light: range('uLightLo', 'uLightHi'), medium: range('uMedLo', 'uMedHi'), dark: range('uDarkLo', 'uDarkHi') };
+      if (!next.light && !next.medium && !next.dark) throw new Error('至少填一個刻度');
+      usual = next;
+      save(USUAL, usual);
+      renderUsual(); render();
+    } catch (e) { $('uErr').textContent = e.message; }
+  });
+  $('uClear').addEventListener('click', () => {
+    usual = null;
+    save(USUAL, null); // 存成 null，重新整理後不會又套回個人預設
+    renderUsual(); render();
+  });
+
+  // ── 初始化 ──
+  const st = load(STATE, {});
+  fillSelect($('from'), st.from || 'c40');
+  fillSelect($('to'), st.to || 'k-ultra');
+  $('setting').value = st.setting ?? '';
+  $('setting').placeholder = '例如 ' + all()[$('from').value].v60[0];
+  $('from').addEventListener('change', () => {
+    $('setting').value = '';
+    $('setting').placeholder = '例如 ' + all()[$('from').value].v60[0];
+    render();
+    $('setting').focus();
+  });
+  $('to').addEventListener('change', () => { renderUsual(); render(); });
+  $('setting').addEventListener('input', render);
+  renderExtra();
+  renderCustomList();
+  renderPairs();
+  renderUsual();
+  render();
+  // 還沒有任何個人設定時，展開 00 提醒先匯入
+  if (!pairs.length && !usual && !Object.keys(custom).length) $('backupBox').open = true;
+})();
+</script>
+</body>
+</html>
