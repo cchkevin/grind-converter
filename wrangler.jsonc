@@ -1,0 +1,6 @@
+// Cloudflare Workers 靜態網站設定：把 repo 根目錄的檔案當成網站內容
+{
+  "name": "grind-converter",
+  "compatibility_date": "2026-11-01",
+  "assets": { "directory": "." }
+}

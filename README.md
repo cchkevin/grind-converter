@@ -18,7 +18,10 @@
 
 ## 部署
 
-純靜態網頁，沒有建置步驟。GitHub Pages、Cloudflare Pages 等都可以直接部署：建置指令留空，輸出目錄設為 repo 根目錄。
+純靜態網頁，沒有建置步驟。
+
+- **Cloudflare Workers**：repo 已附 `wrangler.jsonc`，連接 Git 後建置指令留空、部署指令用 `npx wrangler deploy` 即可。`.assetsignore` 列出不上傳的檔案。
+- **GitHub Pages、Cloudflare Pages** 等：建置指令留空，輸出目錄設為 repo 根目錄。
 
 ## 個人預設（選填）
 
