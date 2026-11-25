@@ -272,7 +272,7 @@
   <section class="card">
     <details id="pairBox">
       <summary><span class="num-tag">05</span>實測對照點（修正某台機器的換算）</summary>
-      <p class="hint">各家資料對同一台機器的估計常常差很多。實際比對過兩台機器（例如喝起來「C40 22 格 ≈ K-Ultra 6.5」），把結果填進來，那台機器的換算就會以實測為準。<br>同一台填 1 組：整台等比例修正。填 2 組（例如淺焙、中焙各一組）：起點和比例都照實測，最準。</p>
+      <p class="hint">各家資料對同一台機器的估計常常差很多。實際比對過兩台機器（例如喝起來「C40 22 格 ≈ K-Ultra 6.5」），把結果填進來，那台機器的換算就會以實測為準。<br>同一台填 1 組：整台等比例修正。填 2 組（例如淺焙、中焙各一組）：起點和比例都照實測，最準。<br>標「內建」的是有實測粒徑依據、預設套用的對照點；你只要新增一組同兩台機器之間的對照點，內建的就會停用，以你的為準。</p>
       <div class="row">
         <div><label for="pSetting" id="pFromLabel">食譜那台</label><input id="pSetting" inputmode="decimal" /></div>
         <div><label for="pMine" id="pToLabel">≈ 換算成</label><input id="pMine" inputmode="decimal" /></div>
@@ -433,7 +433,7 @@
           `<div class="big">${r.display}</div>` +
           `<div class="unit">${total} 約 <span class="num">${Math.round(r.microns)}µm</span></div>` +
           `<div class="compare">${(r.outOfRange ? '<span class="chip warn">超出這台機器的可磨範圍，僅供參考</span>' : '') + compareWithUsual(toId, r.clicks)}</div>` +
-          (from.pairs ? `<div class="applied">已套用實測對照點：${from.pairs.map((p) => `${p.setting} ≈ ${all()[p.to].name} ${p.mine}`).join('、')}</div>` : '');
+          appliedPairs(from, to);
         renderScale(toId, r.microns);
       } catch (e) {
         res.innerHTML = `<div class="err">${e.message}</div>`;
@@ -559,10 +559,21 @@
   });
 
   // ── 對照點 ──
-  function renderPairs() {
+  const pairText = (p) => {
     const A = all();
-    $('pList').innerHTML = pairs.map((p, i) =>
-      `<div><span>${(A[p.from] || {}).name || p.from} ${p.setting} ≈ ${(A[p.to] || {}).name || p.to} ${p.mine}${p.note ? '（' + p.note + '）' : ''}</span><button data-pdel="${i}">刪除</button></div>`).join('');
+    return `${(A[p.from] || {}).name || p.from} ${p.setting} ≈ ${(A[p.to] || {}).name || p.to} ${p.mine}${p.builtin ? '（內建）' : ''}`;
+  };
+  // 換算結果下方：來源和目標機器實際套用中的對照點（含內建的）
+  function appliedPairs(from, to) {
+    const list = [...new Set([...(from.pairs || []), ...(to.pairs || [])])];
+    return list.length ? `<div class="applied">已套用實測對照點：${list.map(pairText).join('、')}</div>` : '';
+  }
+  // 目前生效中的內建對照點（使用者有同兩台機器的對照點時會停用）
+  const activeBuiltin = () => (G.BUILTIN_PAIRS || []).filter((b) => ((extra[b.from] || {}).pairs || []).includes(b));
+  function renderPairs() {
+    $('pList').innerHTML =
+      activeBuiltin().map((p) => `<div><span>${pairText(p)}${p.note ? '　' + p.note : ''}</span></div>`).join('') +
+      pairs.map((p, i) => `<div><span>${pairText(p)}${p.note ? '（' + p.note + '）' : ''}</span><button data-pdel="${i}">刪除</button></div>`).join('');
   }
   $('pAdd').addEventListener('click', () => {
     $('pErr').textContent = '';

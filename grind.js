@@ -9,7 +9,7 @@
 // 可在瀏覽器（<script> 直接載入，不需伺服器）和 Node（require）使用。
 
 (function (root) {
-  const { GRINDERS, V60_MICRONS } =
+  const { GRINDERS, V60_MICRONS, BUILTIN_PAIRS = [] } =
     typeof module !== 'undefined' && module.exports ? require('./grinders.js') : root.Grind;
 
   // ── 刻度寫法 ↔ 總格數 ──
@@ -155,12 +155,17 @@
   function fromMicrons(id, microns, extra) {
     const g = getGrinder(id, extra);
     const clicks = Math.max(0, clicksAt(g, microns, extra));
+    // 可磨範圍用這台的原始定義（沒套用對照點）換成格數再比，
+    // 因為套用對照點後 µm 的尺度會跟著參照的機器走，直接比 µm 會誤判
     const [min, max] = g.microns || [0, Infinity];
+    const base = g.base || g;
+    const lo = min > 0 ? clicksAt(base, min, extra) : -Infinity;
+    const hi = max < Infinity ? clicksAt(base, max, extra) : Infinity;
     return {
       clicks,
       display: fromClicks(g.notation, clicks),
       microns,
-      outOfRange: microns < min || microns > max,
+      outOfRange: clicks < lo - 1e-9 || clicks > hi + 1e-9,
     };
   }
 
@@ -193,10 +198,22 @@
    *   同一台只有 1 組 → 整台等比例修正（scale）
    *   同一台有 2 組以上 → 取最細、最粗兩組，直接用兩點定義這台跟對方的換算（起點和比例都照實測）
    */
-  function applyPairs(pairs, extra = {}) {
+  function applyPairs(pairs, extra = {}, { builtin = true } = {}) {
+    const user = pairs || [];
+    if (builtin) {
+      const all = withBuiltin(user);
+      if (all.length > user.length) {
+        // 內建的跟使用者的對照點組合起來形成循環參照等問題時，退回只用使用者的
+        try {
+          const out = applyPairs(all, extra, { builtin: false });
+          for (const id of Object.keys(out)) micronsAt(getGrinder(id, out), 0, out); // 檢查有沒有循環參照
+          return out;
+        } catch (e) { /* 改用使用者的 */ }
+      }
+    }
     const out = { ...extra };
     const groups = new Map();
-    for (const p of pairs || []) {
+    for (const p of user) {
       const list = groups.get(p.from) || [];
       // 兩點定義需要同一台對照對象；對象不同時只保留最新的對象
       groups.set(p.from, list.filter((x) => x.to === p.to).concat(p));
@@ -205,7 +222,7 @@
       const g = getGrinder(from, extra); // 原始定義（內建或自訂），不是已套用過對照點的版本
       if (list.length === 1) {
         const p = list[0];
-        out[from] = { ...g, scale: pairScale(from, p.setting, p.to, p.mine, out), pair: p, pairs: list };
+        out[from] = { ...g, base: g, scale: pairScale(from, p.setting, p.to, p.mine, out), pair: p, pairs: list };
         continue;
       }
       const sorted = list
@@ -214,11 +231,21 @@
       const lo = sorted[0].p;
       const hi = sorted[sorted.length - 1].p;
       if (sorted[0].c === sorted[sorted.length - 1].c) throw new Error(`${g.name} 的兩個對照點刻度相同`);
-      const next = { ...g, scale: undefined, ref: { grinder: lo.to, pairs: [[lo.setting, lo.mine], [hi.setting, hi.mine]] }, pair: hi, pairs: list };
+      const next = { ...g, base: g, scale: undefined, ref: { grinder: lo.to, pairs: [[lo.setting, lo.mine], [hi.setting, hi.mine]] }, pair: hi, pairs: list };
       validateGrinder(next, out);
       out[from] = next;
     }
     return out;
+  }
+
+  /**
+   * 內建對照點 + 使用者的對照點。使用者有任何一組是同兩台機器之間的（不論方向），
+   * 那組內建的就不用；內建的放前面，同一台機器以使用者的（較後面的）為準。
+   */
+  function withBuiltin(pairs) {
+    const key = (p) => [p.from, p.to].sort().join('|');
+    const mine = new Set((pairs || []).map(key));
+    return BUILTIN_PAIRS.filter((p) => !mine.has(key(p))).concat(pairs || []);
   }
 
   /** 檢查一筆磨豆機資料（給自訂磨豆機用），有問題就丟錯 */
@@ -235,7 +262,7 @@
     return true;
   }
 
-  const api = { GRINDERS, V60_MICRONS, toClicks, fromClicks, toMicrons, fromMicrons, convert, pairScale, applyPairs, validateGrinder };
+  const api = { GRINDERS, V60_MICRONS, BUILTIN_PAIRS, withBuiltin, toClicks, fromClicks, toMicrons, fromMicrons, convert, pairScale, applyPairs, validateGrinder };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else Object.assign((root.Grind = root.Grind || {}), api);
 })(typeof globalThis !== 'undefined' ? globalThis : this);

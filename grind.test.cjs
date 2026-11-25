@@ -60,7 +60,7 @@ test('越粗換過去也越粗', () => {
 });
 
 test('超出機器範圍會標記', () => {
-  assert.equal(G.convert('c40', '40', 'k-ultra').outOfRange, true); // K-Ultra 最粗 760µm
+  assert.equal(G.convert('c40', '40', 'k-ultra').outOfRange, true); // 未校正時 C40 40 ≈ 1150µm，超過 K-Ultra 上限 1100µm
   assert.equal(G.convert('c40', '24', 'k-ultra').outOfRange, false);
 });
 
@@ -114,4 +114,60 @@ test('多台機器的對照點一起套用，互不干擾', () => {
   assert.equal(G.convert('c40', '22', 'k-ultra', extra).display, '6.5');
   assert.equal(G.convert('x-ultra', '2.3.5', 'k-ultra', extra).display, '8.0');
   assert.equal(G.convert('phantox-pro', '7.9', 'k-ultra', extra).display, '6.5');
+});
+
+test('內建對照點：C40 × K-Ultra 實測（C40 22 ≈ 6.8、40 ≈ 1.2.0）預設套用', () => {
+  const extra = G.applyPairs([]);
+  assert.equal(G.convert('c40', '22', 'k-ultra', extra).display, '6.8');
+  assert.equal(G.convert('c40', '40', 'k-ultra', extra).display, '1.2.0');
+  assert.equal(G.convert('c40', '30', 'k-ultra', extra).display, '9.1'); // 兩點之間
+  assert.equal(G.convert('k-ultra', '1.2.0', 'c40', extra).display, '40');
+  assert.equal(G.convert('c40', '40', 'k-ultra', extra).outOfRange, false);
+  // 不要內建的
+  assert.equal(G.convert('c40', '22', 'k-ultra', G.applyPairs([], {}, { builtin: false })).display, '8.0');
+});
+
+test('使用者有同兩台機器的對照點時，內建的停用（不論方向）', () => {
+  const one = G.applyPairs([{ from: 'c40', setting: '22', to: 'k-ultra', mine: '6.5' }]);
+  assert.equal(G.convert('c40', '22', 'k-ultra', one).display, '6.5');
+  assert.equal(one['k-ultra'], undefined);
+
+  const two = G.applyPairs([
+    { from: 'c40', setting: '22', to: 'k-ultra', mine: '6.5' },
+    { from: 'c40', setting: '30', to: 'k-ultra', mine: '9.0' },
+  ]);
+  assert.equal(G.convert('c40', '22', 'k-ultra', two).display, '6.5');
+  assert.equal(G.convert('c40', '30', 'k-ultra', two).display, '9.0');
+
+  const rev = G.applyPairs([
+    { from: 'k-ultra', setting: '6.5', to: 'c40', mine: '22' },
+    { from: 'k-ultra', setting: '9.0', to: 'c40', mine: '30' },
+  ]);
+  assert.equal(G.convert('c40', '22', 'k-ultra', rev).display, '6.5');
+  assert.ok(!rev['k-ultra'].pairs.some((p) => p.builtin));
+});
+
+test('內建對照點跟使用者的其他機器一起套用', () => {
+  const extra = G.applyPairs([
+    { from: 'x-ultra', setting: '2.2.0', to: 'k-ultra', mine: '7.0' },
+    { from: 'x-ultra', setting: '2.3.5', to: 'k-ultra', mine: '8.0' },
+  ]);
+  assert.equal(G.convert('x-ultra', '2.2.0', 'k-ultra', extra).display, '7.0');
+  assert.equal(G.convert('c40', '22', 'k-ultra', extra).display, '6.8');
+  // X-Ultra → K-Ultra → C40 串接
+  assert.equal(G.convert('k-ultra', '6.8', 'c40', extra).display, '22');
+});
+
+test('內建對照點造成循環參照時，退回只用使用者的', () => {
+  // C40 → X-Ultra → K-Ultra，加上內建 K-Ultra → C40 會繞一圈
+  const pairs = [
+    { from: 'c40', setting: '20', to: 'x-ultra', mine: '2.0.0' },
+    { from: 'c40', setting: '30', to: 'x-ultra', mine: '2.5.0' },
+    { from: 'x-ultra', setting: '2.2.0', to: 'k-ultra', mine: '7.0' },
+    { from: 'x-ultra', setting: '2.3.5', to: 'k-ultra', mine: '8.0' },
+  ];
+  const extra = G.applyPairs(pairs);
+  assert.equal(extra['k-ultra'], undefined);
+  assert.equal(G.convert('c40', '20', 'x-ultra', extra).display, '2.0.0');
+  assert.doesNotThrow(() => G.convert('c40', '22', 'k-ultra', extra));
 });

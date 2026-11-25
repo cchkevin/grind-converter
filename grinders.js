@@ -24,7 +24,7 @@
 
   const GRINDERS = {
     // ── 1Zpresso ──
-    'k-ultra': { name: '1Zpresso K-Ultra', v60: ['0.5.3', '0.9.2'], microns: [0, 760], notation: rnt(100), confidence: 'high', source: HCG('1zpresso-k-ultra') },
+    'k-ultra': { name: '1Zpresso K-Ultra', v60: ['0.5.3', '0.9.2'], microns: [0, 1100], notation: rnt(100), confidence: 'high', source: HCG('1zpresso-k-ultra') },
     'k-pro': { name: '1Zpresso K-Pro', v60: ['0.5.0', '0.8.7'], microns: [0, 1400], notation: rnt(100), confidence: 'high', source: HCG('1zpresso-k-pro') },
     'k-plus': { name: '1Zpresso K-Plus', v60: ['0.4.9', '0.8.4'], microns: [0, 1330], notation: rnt(100), confidence: 'high', source: HCG('1zpresso-k-plus') },
     'k-max': { name: '1Zpresso K-Max', v60: ['0.5.0', '0.8.7'], microns: [0, 1400], notation: rnt(100), confidence: 'high', source: HCG('1zpresso-k-max') },
@@ -86,7 +86,17 @@
   /** V60 範圍兩端對應的粒徑（µm） */
   const V60_MICRONS = [400, 700];
 
-  const api = { GRINDERS, V60_MICRONS };
+  /**
+   * 內建對照點：有實測依據、所有人預設都會套用（格式同使用者的對照點）。
+   * 使用者自己的對照點只要有一組是同兩台機器之間的（不論方向），這組內建的就停用，以使用者的為準。
+   */
+  const BUILTIN_PAIRS = [
+    // C40 × K-Ultra 實測平均粒徑：常用手沖約 960–980µm、最大粗度約 1,100µm（見 SPEC 9.4）
+    { from: 'k-ultra', setting: '0.6.8', to: 'c40', mine: '22', note: '實測：常用手沖，約 960–980µm', builtin: true },
+    { from: 'k-ultra', setting: '1.2.0', to: 'c40', mine: '40', note: '實測：最大粗度，約 1,100µm', builtin: true },
+  ];
+
+  const api = { GRINDERS, V60_MICRONS, BUILTIN_PAIRS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else Object.assign((root.Grind = root.Grind || {}), api);
 })(typeof globalThis !== 'undefined' ? globalThis : this);
